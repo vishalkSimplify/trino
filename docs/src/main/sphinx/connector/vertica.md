@@ -260,7 +260,6 @@ this table:
   * - ``DECIMAL(p, s)``
     - ``NUMERIC(p, s)``
     - ``DECIMAL(p, s)`` is an alias of  ``NUMERIC(p, s)``
-    -
   * - ``CHAR(n)``
     - ``CHAR(n)``
     -
