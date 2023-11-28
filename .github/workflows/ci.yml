@@ -491,7 +491,8 @@ jobs:
             !:trino-sqlserver,
             !:trino-test-jdbc-compatibility-old-server,
             !:trino-tests,
-            !:trino-thrift'
+            !:trino-thrift',
+            !:trino-vertica
       - name: Upload test results
         uses: actions/upload-artifact@v3
         # Upload all test reports only on failure, because the artifacts are large
