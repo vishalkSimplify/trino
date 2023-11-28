@@ -7,7 +7,7 @@ myst:
 # Vertica connector
 
 ```{raw} html
-<img src="../_static/img/vertica.png" class="connector-logo">
+<img src="../_static/img/druid.png" class="connector-logo">
 ```
 
 The Vertica connector allows querying and creating tables 
@@ -80,12 +80,12 @@ data source, you can enable TLS between your cluster and the data
 source by appending a parameter to the JDBC connection string set in the
 `connection-url` catalog configuration property.
 
-For example, with version 42 of the PostgreSQL JDBC driver, enable TLS by
+For example, with version 42 of the Vertica JDBC driver, enable TLS by
 appending the `ssl=true` parameter to the `connection-url` configuration
 property:
 
 ```properties
-connection-url=jdbc:postgresql://example.net:5432/database?ssl=true
+connection-url=jdbc:vertica://vertica.Example.Com:5433/database?ssl=true 
 ```
 
 For more information on TLS configuration options check [Vertica JDBC driver documentation](https://docs.vertica.com/23.4.x/en/connecting-to/client-libraries/accessing/java/creating-and-configuring-connection/),
@@ -118,10 +118,9 @@ Refer to the following sections for type mapping in each direction.
 The connector maps Vertica types to the corresponding Trino types following
 this table:
 
-```{eval-rst}
-.. list-table:: Vertica type to Trino type mapping
-  :widths: 30, 20, 50
-  :header-rows: 1
+:::{list-table} Vertica type to Trino type mapping
+:widths: 30, 30, 40
+:header-rows: 1
 
   * - Vertica type
     - Trino type
@@ -221,21 +220,21 @@ this table:
     - Dependent on the use case.
   * - ``ARRAY``
     - Disabled,``ARRAY``
-    - See :ref:`vertica-array-type-handling` for more information.
+    - See [](vertica-array-type-handling) for more information.
   
-```
+:::
 
 No other types are supported.
+
 
 ### Trino type to Vertica type mapping
 
 The connector maps Trino types to the corresponding Vertica types following
 this table:
 
-```{eval-rst}
-.. list-table:: Trino type to Vertica type mapping
-  :widths: 30, 20, 50
-  :header-rows: 1
+:::{list-table} Trino type to Vertica type mapping
+:widths: 30, 30, 40
+:header-rows: 1
 
   * - Trino type
     - Vertica type
@@ -291,70 +290,75 @@ this table:
     -
   * - ``ARRAY``
     - ``ARRAY``
-    - 
-```
+    - See [](vertica-array-type-handling) for more information.
+:::
 
 No other types are supported.
 
-``` Note: Mapping may depend on the actual data and queries you are working with. Array type handling      may vary depending on the specific use case. 
-```
+ ``` 
+ Note: Mapping may depend on the actual data and queries you are working with. 
+       Array type handling may vary depending on the specific use case. 
+ ```
+
+
 
 (vertica-array-type-handling)=
 
 ### Array type handling
 
-The PostgreSQL array implementation does not support fixed dimensions whereas Trino
-support only arrays with fixed dimensions.
-You can configure how the PostgreSQL connector handles arrays with the `postgresql.array-mapping` configuration property in your catalog file
-or the `array_mapping` session property.
+The Vertica array implementation differs from Trino in that it does not support fixed dimensions, whereas Trino supports only arrays with fixed dimensions. You can configure how the `Vertica` connector handles arrays with the `vertica.array-mapping` configuration property in your catalog file or the `array_mapping` session property. 
+
 The following values are accepted for this property:
 
 - `DISABLED` (default): array columns are skipped.
-- `AS_ARRAY`: array columns are interpreted as Trino `ARRAY` type, for array columns with fixed dimensions.
-- `AS_JSON`: array columns are interpreted as Trino `JSON` type, with no constraint on dimensions.
+- `AS_ARRAY`: array columns are interpreted as Trino `ARRAY` type, for array columns without fixed dimensions.
+
 
 ```{include} jdbc-type-mapping.fragment
 ```
 
-## Querying PostgreSQL
+## Querying Vertica
 
-The PostgreSQL connector provides a schema for every PostgreSQL schema.
-You can see the available PostgreSQL schemas by running `SHOW SCHEMAS`:
-
-```
-SHOW SCHEMAS FROM example;
-```
-
-If you have a PostgreSQL schema named `web`, you can view the tables
-in this schema by running `SHOW TABLES`:
+The Vertica connector provides a schema for every Vertica schema. 
+You can see the available Vertica schemas by running `SHOW SCHEMAS`: 
 
 ```
-SHOW TABLES FROM example.web;
+SHOW SCHEMAS FROM example; 
 ```
 
-You can see a list of the columns in the `clicks` table in the `web` database
+If you have a Vertica schema named `public`, you can view the tables 
+in this schema by running `SHOW TABLES`: 
+
+```
+SHOW TABLES FROM example.public;
+```
+
+You can see a list of the columns in the `customer_dimension` table in the `public` database
 using either of the following:
 
 ```
-DESCRIBE example.web.clicks;
-SHOW COLUMNS FROM example.web.clicks;
+DESCRIBE example.public.customer_dimension;
+SHOW COLUMNS FROM example.public.customer_dimension;
 ```
 
-Finally, you can access the `clicks` table in the `web` schema:
+Finally, you can access the `customer_dimension` table in the `public` schema:
 
 ```
-SELECT * FROM example.web.clicks;
+SELECT * FROM example.public.customer_dimension;
 ```
 
 If you used a different name for your catalog properties file, use
 that catalog name instead of `example` in the above examples.
 
-(postgresql-sql-support)=
+These queries allow you to explore and interact with your Vertica 
+data using Trino in a similar manner as querying Vertica . 
+
+(Vertica-sql-support)=
 
 ## SQL support
 
 The connector provides read access and write access to data and metadata in
-PostgreSQL.  In addition to the {ref}`globally available
+Vertica.  In addition to the {ref}`globally available
 <sql-globally-available>` and {ref}`read operation <sql-read-operations>`
 statements, the connector supports the following features:
 
@@ -376,7 +380,7 @@ statements, the connector supports the following features:
 ```{include} alter-schema-limitation.fragment
 ```
 
-(postgresql-fte-support)=
+(vertica-fte-support)=
 
 ## Fault-tolerant execution support
 
@@ -386,17 +390,22 @@ processing. Read and write operations are both supported with any retry policy.
 ## Table functions
 
 The connector provides specific {doc}`table functions </functions/table>` to
-access PostgreSQL.
+access Vertica.
 
-(postgresql-query-function)=
+(vertica-query-function)=
 
 ### `query(varchar) -> table`
 
 The `query` function allows you to query the underlying database directly. It
-requires syntax native to PostgreSQL, because the full query is pushed down and
-processed in PostgreSQL. This can be useful for accessing native features which
+requires syntax native to Vertica, because the full query is pushed down and
+processed in Vertica. This can be useful for accessing native features which
 are not available in Trino or for improving query performance in situations
 where running a query natively may be faster.
+
+The native query passed to the underlying data source is required to return 
+a table as a result set. Only the data source performs validation or security 
+checks for these queries using its own configuration. Trino does not perform 
+these tasks. Only use passthrough queries to read data. 
 
 ```{include} query-passthrough-warning.fragment
 ```
@@ -412,44 +421,11 @@ FROM
       query => 'SELECT
         *
       FROM
-        tpch.nation'
+        public.customer_dimension'
     )
   );
 ```
 
-As a practical example, you can leverage
-[frame exclusion from PostgresQL](https://www.postgresql.org/docs/current/sql-expressions.html#SYNTAX-WINDOW-FUNCTIONS)
-when using window functions:
-
-```
-SELECT
-  *
-FROM
-  TABLE(
-    example.system.query(
-      query => 'SELECT
-        *,
-        array_agg(week) OVER (
-          ORDER BY
-            week
-          ROWS
-            BETWEEN 2 PRECEDING
-            AND 2 FOLLOWING
-            EXCLUDE GROUP
-        ) AS week,
-        array_agg(week) OVER (
-          ORDER BY
-            day
-          ROWS
-            BETWEEN 2 PRECEDING
-            AND 2 FOLLOWING
-            EXCLUDE GROUP
-        ) AS all
-      FROM
-        test.time_data'
-    )
-  );
-```
 
 ```{include} query-table-function-ordering.fragment
 ```
@@ -459,27 +435,41 @@ FROM
 The connector includes a number of performance improvements, detailed in the
 following sections.
 
-(postgresql-table-statistics)=
+(vertica-table-statistics)=
 
-### Table statistics
+### Table statistics for Vertica
 
-The PostgreSQL connector can use {doc}`table and column statistics
+The Vertica connector can use {doc}`table and column statistics
 </optimizer/statistics>` for {doc}`cost based optimizations
 </optimizer/cost-based-optimizations>`, to improve query processing performance
 based on the actual data in the data source.
 
-The statistics are collected by PostgreSQL and retrieved by the connector.
 
-To collect statistics for a table, execute the following statement in
-PostgreSQL.
+#### Note: Show stats works only when you collects stats first on vertica use the command :
 
-```text
-ANALYZE table_schema.table_name;
+``` 
+SELECT ANALYZE_STATISTICS (''); 
 ```
 
-Refer to PostgreSQL documentation for additional `ANALYZE` options.
+For more details refer [Vertica Documentation ](https://docs.vertica.com/23.4.x/en/admin/collecting-db-statistics/) .
 
-(postgresql-pushdown)=
+
+The statistics are collected by Vertica and retrieved by the connector.
+
+To collect statistics for a table, execute the following statement in
+Vertica.
+
+```text
+SHOW stats catalog.table_schema.table_name; 
+```
+
+Refer to the Vertica documentation for additional ANALYZE options and 
+details on collecting statistics for your tables. 
+
+By collecting and providing accurate statistics, you can help the Vertica connector 
+make more informed decisions about query optimization and execution plans, leading to improved query performance. 
+
+(vertica-pushdown)=
 
 ### Pushdown
 
@@ -491,22 +481,11 @@ The connector supports pushdown for a number of operations:
 
 {ref}`Aggregate pushdown <aggregation-pushdown>` for the following functions:
 
-- {func}`avg`
 - {func}`count`
 - {func}`max`
 - {func}`min`
 - {func}`sum`
-- {func}`stddev`
-- {func}`stddev_pop`
-- {func}`stddev_samp`
-- {func}`variance`
-- {func}`var_pop`
-- {func}`var_samp`
-- {func}`covar_pop`
-- {func}`covar_samp`
-- {func}`corr`
-- {func}`regr_intercept`
-- {func}`regr_slope`
+  
 
 ```{include} pushdown-correctness-behavior.fragment
 ```
@@ -540,7 +519,7 @@ SELECT * FROM nation WHERE name = 'CANADA';
 
 There is experimental support to enable pushdown of range predicates on columns
 with character string types which can be enabled by setting the
-`postgresql.experimental.enable-string-pushdown-with-collate` catalog
+`vertica.experimental.enable-string-pushdown-with-collate` catalog
 configuration property or the corresponding
 `enable_string_pushdown_with_collate` session property to `true`.
 Enabling this configuration will make the predicate of all the queries in the
