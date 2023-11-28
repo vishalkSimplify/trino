@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - vertica_connector
   pull_request:
     paths-ignore:
       - 'docs/**'
