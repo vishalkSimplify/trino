@@ -139,6 +139,7 @@ import io.trino.spi.PageIndexerFactory;
 import io.trino.spi.PageSorter;
 import io.trino.spi.Plugin;
 import io.trino.spi.connector.CatalogHandle;
+import io.trino.spi.connector.Connector;
 import io.trino.spi.connector.ConnectorFactory;
 import io.trino.spi.exchange.ExchangeManager;
 import io.trino.spi.session.PropertyMetadata;
@@ -394,13 +395,10 @@ public class LocalQueryRunner
         this.accessControl = new TestingAccessControlManager(transactionManager, eventListenerManager);
         accessControl.loadSystemAccessControl(AllowAllSystemAccessControl.NAME, ImmutableMap.of());
 
-        HandleResolver handleResolver = new HandleResolver();
-
         NodeInfo nodeInfo = new NodeInfo("test");
         catalogFactory.setCatalogFactory(new DefaultCatalogFactory(
                 metadata,
                 accessControl,
-                handleResolver,
                 nodeManager,
                 pageSorter,
                 pageIndexerFactory,
@@ -490,7 +488,7 @@ public class LocalQueryRunner
                 new SessionPropertyDefaults(nodeInfo, accessControl),
                 typeRegistry,
                 blockEncodingManager,
-                handleResolver,
+                new HandleResolver(),
                 exchangeManagerRegistry);
 
         catalogManager.registerGlobalSystemConnector(globalSystemConnector);
@@ -757,19 +755,19 @@ public class LocalQueryRunner
 
     public void createCatalog(String catalogName, ConnectorFactory connectorFactory, Map<String, String> properties)
     {
-        catalogFactory.addConnectorFactory(connectorFactory, ignored -> connectorFactory.getClass().getClassLoader());
+        catalogFactory.addConnectorFactory(connectorFactory);
         catalogManager.createCatalog(catalogName, new ConnectorName(connectorFactory.getName()), properties, false);
     }
 
     public void registerCatalogFactory(ConnectorFactory connectorFactory)
     {
-        catalogFactory.addConnectorFactory(connectorFactory, ignored -> connectorFactory.getClass().getClassLoader());
+        catalogFactory.addConnectorFactory(connectorFactory);
     }
 
     @Override
     public void installPlugin(Plugin plugin)
     {
-        pluginManager.installPlugin(plugin, ignored -> plugin.getClass().getClassLoader());
+        pluginManager.installPlugin(plugin);
     }
 
     @Override
@@ -787,6 +785,13 @@ public class LocalQueryRunner
     public CatalogManager getCatalogManager()
     {
         return catalogManager;
+    }
+
+    public Connector getConnector(String catalogName)
+    {
+        return catalogManager
+                .getConnectorServices(getCatalogHandle(catalogName))
+                .getConnector();
     }
 
     public LocalQueryRunner printPlan()

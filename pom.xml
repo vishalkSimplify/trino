@@ -10,7 +10,7 @@
 
     <groupId>io.trino</groupId>
     <artifactId>trino-root</artifactId>
-    <version>434-SNAPSHOT</version>
+    <version>435-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>${project.artifactId}</name>
@@ -115,7 +115,6 @@
         <module>plugin/trino-vertica</module>
         <module>service/trino-proxy</module>
         <module>service/trino-verifier</module>
-        <module>testing/trino-benchmark</module>
         <module>testing/trino-benchmark-queries</module>
         <module>testing/trino-benchto-benchmarks</module>
         <module>testing/trino-faulttolerant-tests</module>
@@ -179,7 +178,7 @@
         <dep.antlr.version>4.13.1</dep.antlr.version>
         <dep.arrow.version>14.0.1</dep.arrow.version>
         <dep.avro.version>1.11.3</dep.avro.version>
-        <dep.aws-sdk.version>1.12.595</dep.aws-sdk.version>
+        <dep.aws-sdk.version>1.12.604</dep.aws-sdk.version>
         <dep.cassandra.version>4.17.0</dep.cassandra.version>
         <dep.confluent.version>7.5.1</dep.confluent.version>
         <dep.docker.images.version>87</dep.docker.images.version>
@@ -250,7 +249,7 @@
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-bom</artifactId>
-                <version>1.59.0</version>
+                <version>1.59.1</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -274,7 +273,7 @@
             <dependency>
                 <groupId>org.jdbi</groupId>
                 <artifactId>jdbi3-bom</artifactId>
-                <version>3.41.3</version>
+                <version>3.42.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -298,7 +297,7 @@
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
-                <version>2.21.29</version>
+                <version>2.21.37</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -589,13 +588,13 @@
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>nimbus-jose-jwt</artifactId>
-                <version>9.37.1</version>
+                <version>9.37.2</version>
             </dependency>
 
             <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>oauth2-oidc-sdk</artifactId>
-                <version>11.6</version>
+                <version>11.7</version>
                 <classifier>jdk11</classifier>
             </dependency>
 
@@ -971,12 +970,6 @@
                 <artifactId>trino-base-jdbc</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
-            </dependency>
-
-            <dependency>
-                <groupId>io.trino</groupId>
-                <artifactId>trino-benchmark</artifactId>
-                <version>${project.version}</version>
             </dependency>
 
             <dependency>
@@ -1832,7 +1825,7 @@
             <dependency>
                 <groupId>org.apache.maven</groupId>
                 <artifactId>maven-model</artifactId>
-                <version>3.9.5</version>
+                <version>3.9.6</version>
             </dependency>
 
             <dependency>
@@ -2027,7 +2020,7 @@
             <dependency>
                 <groupId>org.mariadb.jdbc</groupId>
                 <artifactId>mariadb-java-client</artifactId>
-                <version>3.3.0</version>
+                <version>3.3.1</version>
             </dependency>
 
             <dependency>

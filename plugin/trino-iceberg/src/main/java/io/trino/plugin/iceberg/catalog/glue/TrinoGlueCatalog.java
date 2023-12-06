@@ -171,7 +171,7 @@ public class TrinoGlueCatalog
 {
     private static final Logger LOG = Logger.get(TrinoGlueCatalog.class);
 
-    private static final int PER_QUERY_CACHE_SIZE = 1000;
+    private static final int PER_QUERY_CACHES_SIZE = 1000;
 
     private final String trinoVersion;
     private final TypeManager typeManager;
@@ -181,20 +181,21 @@ public class TrinoGlueCatalog
     private final AWSGlueAsync glueClient;
     private final GlueMetastoreStats stats;
     private final boolean hideMaterializedViewStorageTable;
+    private final boolean isUsingSystemSecurity;
 
     private final Cache<SchemaTableName, com.amazonaws.services.glue.model.Table> glueTableCache = EvictableCacheBuilder.newBuilder()
             // Even though this is query-scoped, this still needs to be bounded. information_schema queries can access large number of tables.
-            .maximumSize(Math.max(PER_QUERY_CACHE_SIZE, IcebergMetadata.GET_METADATA_BATCH_SIZE))
+            .maximumSize(Math.max(PER_QUERY_CACHES_SIZE, IcebergMetadata.GET_METADATA_BATCH_SIZE))
             .build();
 
     private final Cache<SchemaTableName, TableMetadata> tableMetadataCache = EvictableCacheBuilder.newBuilder()
-            .maximumSize(PER_QUERY_CACHE_SIZE)
+            .maximumSize(PER_QUERY_CACHES_SIZE)
             .build();
     private final Cache<SchemaTableName, ConnectorViewDefinition> viewCache = EvictableCacheBuilder.newBuilder()
-            .maximumSize(PER_QUERY_CACHE_SIZE)
+            .maximumSize(PER_QUERY_CACHES_SIZE)
             .build();
     private final Cache<SchemaTableName, MaterializedViewData> materializedViewCache = EvictableCacheBuilder.newBuilder()
-            .maximumSize(PER_QUERY_CACHE_SIZE)
+            .maximumSize(PER_QUERY_CACHES_SIZE)
             .build();
 
     public TrinoGlueCatalog(
@@ -206,6 +207,7 @@ public class TrinoGlueCatalog
             String trinoVersion,
             AWSGlueAsync glueClient,
             GlueMetastoreStats stats,
+            boolean isUsingSystemSecurity,
             Optional<String> defaultSchemaLocation,
             boolean useUniqueTableLocation,
             boolean hideMaterializedViewStorageTable)
@@ -217,6 +219,7 @@ public class TrinoGlueCatalog
         this.fileSystemFactory = requireNonNull(fileSystemFactory, "fileSystemFactory is null");
         this.glueClient = requireNonNull(glueClient, "glueClient is null");
         this.stats = requireNonNull(stats, "stats is null");
+        this.isUsingSystemSecurity = isUsingSystemSecurity;
         this.defaultSchemaLocation = requireNonNull(defaultSchemaLocation, "defaultSchemaLocation is null");
         this.hideMaterializedViewStorageTable = hideMaterializedViewStorageTable;
     }
@@ -416,7 +419,7 @@ public class TrinoGlueCatalog
                         }
                         else {
                             unprocessed.put(name, table);
-                            if (unprocessed.size() >= PER_QUERY_CACHE_SIZE) {
+                            if (unprocessed.size() >= PER_QUERY_CACHES_SIZE) {
                                 getColumnsFromIcebergMetadata(session, unprocessed, relationFilter, filteredResult::add);
                                 unprocessed.clear();
                             }
@@ -511,7 +514,7 @@ public class TrinoGlueCatalog
                         }
                         else {
                             unprocessed.put(name, table);
-                            if (unprocessed.size() >= PER_QUERY_CACHE_SIZE) {
+                            if (unprocessed.size() >= PER_QUERY_CACHES_SIZE) {
                                 getCommentsFromIcebergMetadata(session, unprocessed, relationFilter, filteredResult::add);
                                 unprocessed.clear();
                             }
@@ -1173,7 +1176,7 @@ public class TrinoGlueCatalog
         TableInput materializedViewTableInput = getMaterializedViewTableInput(
                 viewName.getTableName(),
                 encodeMaterializedViewData(fromConnectorMaterializedViewDefinition(definition)),
-                session.getUser(),
+                isUsingSystemSecurity ? null : session.getUser(),
                 createMaterializedViewProperties(session, storageTable));
 
         if (existing.isPresent()) {

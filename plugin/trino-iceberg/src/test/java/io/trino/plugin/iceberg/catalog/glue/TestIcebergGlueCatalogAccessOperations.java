@@ -107,6 +107,7 @@ public class TestIcebergGlueCatalogAccessOperations
         trackingFileSystemFactory = new TrackingFileSystemFactory(new HdfsFileSystemFactory(HDFS_ENVIRONMENT, HDFS_FILE_SYSTEM_STATS));
 
         queryRunner.installPlugin(new TestingIcebergPlugin(
+                tmp.toPath(),
                 Optional.empty(),
                 Optional.of(trackingFileSystemFactory),
                 EMPTY_MODULE));
@@ -312,6 +313,55 @@ public class TestIcebergGlueCatalogAccessOperations
         finally {
             getQueryRunner().execute("DROP MATERIALIZED VIEW IF EXISTS test_refresh_mview_view");
             getQueryRunner().execute("DROP TABLE IF EXISTS test_refresh_mview_table");
+        }
+    }
+
+    @Test
+    public void testMaterializedViewMetadata()
+    {
+        try {
+            assertUpdate("CREATE TABLE test_mview_metadata_table (id VARCHAR, age INT)");
+            assertUpdate("CREATE MATERIALIZED VIEW test_mview_metadata_view AS SELECT id, age FROM test_mview_metadata_table");
+
+            // listing
+            assertGlueMetastoreApiInvocations(
+                    "SELECT * FROM system.metadata.materialized_views WHERE catalog_name = CURRENT_CATALOG AND schema_name = CURRENT_SCHEMA",
+                    ImmutableMultiset.builder()
+                            .add(GET_TABLES)
+                            .add(GET_TABLE)
+                            .build());
+
+            // pointed lookup
+            assertGlueMetastoreApiInvocations(
+                    "SELECT * FROM system.metadata.materialized_views WHERE catalog_name = CURRENT_CATALOG AND schema_name = CURRENT_SCHEMA AND name = 'test_mview_metadata_view'",
+                    ImmutableMultiset.builder()
+                            .add(GET_TABLE)
+                            .build());
+
+            // just names
+            assertGlueMetastoreApiInvocations(
+                    "SELECT name FROM system.metadata.materialized_views WHERE catalog_name = CURRENT_CATALOG AND schema_name = CURRENT_SCHEMA",
+                    ImmutableMultiset.builder()
+                            .add(GET_TABLES)
+                            .add(GET_TABLE)
+                            .build());
+
+            // getting relations with their types, like some tools do
+            assertGlueMetastoreApiInvocations(
+                    """
+                            SELECT table_name, IF(mv.name IS NOT NULL, 'MATERIALIZED VIEW', table_type) AS table_type
+                            FROM information_schema.tables t
+                            JOIN system.metadata.materialized_views mv ON t.table_schema = mv.schema_name AND t.table_name = mv.name
+                            WHERE t.table_schema = CURRENT_SCHEMA AND mv.catalog_name = CURRENT_CATALOG
+                            """,
+                    ImmutableMultiset.builder()
+                            .addCopies(GET_TABLES, 2)
+                            .add(GET_TABLE)
+                            .build());
+        }
+        finally {
+            getQueryRunner().execute("DROP MATERIALIZED VIEW IF EXISTS test_mview_metadata_view");
+            getQueryRunner().execute("DROP TABLE IF EXISTS test_mview_metadata_table");
         }
     }
 

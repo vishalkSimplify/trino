@@ -42,7 +42,6 @@ import io.trino.plugin.hive.LocationHandle.WriteMode;
 import io.trino.plugin.hive.PartitionNotFoundException;
 import io.trino.plugin.hive.PartitionStatistics;
 import io.trino.plugin.hive.PartitionUpdateAndMergeResults;
-import io.trino.plugin.hive.SchemaAlreadyExistsException;
 import io.trino.plugin.hive.TableAlreadyExistsException;
 import io.trino.plugin.hive.TableInvalidationCallback;
 import io.trino.plugin.hive.acid.AcidOperation;
@@ -102,7 +101,7 @@ import static io.trino.plugin.hive.HiveErrorCode.HIVE_FILESYSTEM_ERROR;
 import static io.trino.plugin.hive.HiveErrorCode.HIVE_METASTORE_ERROR;
 import static io.trino.plugin.hive.HiveErrorCode.HIVE_PATH_ALREADY_EXISTS;
 import static io.trino.plugin.hive.HiveErrorCode.HIVE_TABLE_DROPPED_DURING_QUERY;
-import static io.trino.plugin.hive.HiveMetadata.PRESTO_QUERY_ID_NAME;
+import static io.trino.plugin.hive.HiveMetadata.TRINO_QUERY_ID_NAME;
 import static io.trino.plugin.hive.LocationHandle.WriteMode.DIRECT_TO_TARGET_NEW_DIRECTORY;
 import static io.trino.plugin.hive.TableType.MANAGED_TABLE;
 import static io.trino.plugin.hive.ViewReaderUtil.isTrinoMaterializedView;
@@ -464,26 +463,7 @@ public class SemiTransactionalHiveMetastore
                 "Database '%s' does not have correct query id set",
                 database.getDatabaseName());
 
-        setExclusive(delegate -> {
-            try {
-                delegate.createDatabase(database);
-            }
-            catch (SchemaAlreadyExistsException e) {
-                // Ignore SchemaAlreadyExistsException when database looks like created by us.
-                // This may happen when an actually successful metastore create call is retried
-                // e.g. because of a timeout on our side.
-                Optional<Database> existingDatabase = delegate.getDatabase(database.getDatabaseName());
-                if (existingDatabase.isEmpty() || !isCreatedBy(existingDatabase.get(), queryId)) {
-                    throw e;
-                }
-            }
-        });
-    }
-
-    private static boolean isCreatedBy(Database database, String queryId)
-    {
-        Optional<String> databaseQueryId = getQueryId(database);
-        return databaseQueryId.isPresent() && databaseQueryId.get().equals(queryId);
+        setExclusive(delegate -> delegate.createDatabase(database));
     }
 
     public synchronized void dropDatabase(ConnectorSession session, String schemaName)
@@ -2754,17 +2734,17 @@ public class SemiTransactionalHiveMetastore
 
     private static Optional<String> getQueryId(Database database)
     {
-        return Optional.ofNullable(database.getParameters().get(PRESTO_QUERY_ID_NAME));
+        return Optional.ofNullable(database.getParameters().get(TRINO_QUERY_ID_NAME));
     }
 
     private static Optional<String> getQueryId(Table table)
     {
-        return Optional.ofNullable(table.getParameters().get(PRESTO_QUERY_ID_NAME));
+        return Optional.ofNullable(table.getParameters().get(TRINO_QUERY_ID_NAME));
     }
 
     private static Optional<String> getQueryId(Partition partition)
     {
-        return Optional.ofNullable(partition.getParameters().get(PRESTO_QUERY_ID_NAME));
+        return Optional.ofNullable(partition.getParameters().get(TRINO_QUERY_ID_NAME));
     }
 
     private static Location asFileLocation(Location location)
