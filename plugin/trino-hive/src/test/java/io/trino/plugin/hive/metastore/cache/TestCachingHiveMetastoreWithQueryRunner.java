@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.inject.Key;
 import io.trino.Session;
 import io.trino.plugin.hive.HiveQueryRunner;
-import io.trino.plugin.hive.TestingHiveUtils;
 import io.trino.plugin.hive.metastore.HiveMetastore;
 import io.trino.plugin.hive.metastore.HiveMetastoreFactory;
 import io.trino.plugin.hive.metastore.RawHiveMetastoreFactory;
@@ -28,20 +27,24 @@ import io.trino.spi.security.SelectedRole;
 import io.trino.testing.AbstractTestQueryFramework;
 import io.trino.testing.DistributedQueryRunner;
 import io.trino.testing.QueryRunner;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.parallel.Execution;
 
 import java.util.List;
 import java.util.Optional;
 
 import static com.google.common.base.Verify.verify;
-import static com.google.common.collect.Lists.cartesianProduct;
+import static io.trino.plugin.hive.TestingHiveUtils.getConnectorService;
 import static io.trino.spi.security.SelectedRole.Type.ROLE;
 import static io.trino.testing.TestingSession.testSessionBuilder;
 import static java.util.Collections.nCopies;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS;
+import static org.junit.jupiter.api.parallel.ExecutionMode.SAME_THREAD;
 
-@Test(singleThreaded = true)
+@TestInstance(PER_CLASS)
+@Execution(SAME_THREAD)
 public class TestCachingHiveMetastoreWithQueryRunner
         extends AbstractTestQueryFramework
 {
@@ -71,7 +74,7 @@ public class TestCachingHiveMetastoreWithQueryRunner
                         "hive.metastore-refresh-interval", "10m"))
                 .build();
 
-        rawMetastore = TestingHiveUtils.getConnectorService(queryRunner, Key.get(HiveMetastoreFactory.class, RawHiveMetastoreFactory.class))
+        rawMetastore = getConnectorService(queryRunner, Key.get(HiveMetastoreFactory.class, RawHiveMetastoreFactory.class))
                 .createMetastore(Optional.empty());
 
         queryRunner.execute(ADMIN, "CREATE SCHEMA " + SCHEMA);
@@ -101,8 +104,27 @@ public class TestCachingHiveMetastoreWithQueryRunner
                 .hasMessageContaining("Access Denied");
     }
 
-    @Test(dataProvider = "testCacheRefreshOnRoleGrantAndRevokeParams")
-    public void testCacheRefreshOnRoleGrantAndRevoke(List<String> grantRoleStatements, String revokeRoleStatement)
+    @Test
+    public void testCacheRefreshOnRoleGrantAndRevoke()
+    {
+        String grantSelectStatement = "GRANT SELECT ON test TO ROLE test_role";
+        String grantRoleStatement = "GRANT test_role TO " + ALICE_NAME + " IN " + CATALOG;
+        List<List<String>> grantRoleStatements = ImmutableList.of(
+                ImmutableList.of(grantSelectStatement, grantRoleStatement),
+                ImmutableList.of(grantRoleStatement, grantSelectStatement));
+        List<String> revokeRoleStatements = ImmutableList.of(
+                "DROP ROLE test_role IN " + CATALOG,
+                "REVOKE SELECT ON test FROM ROLE test_role",
+                "REVOKE test_role FROM " + ALICE_NAME + " IN " + CATALOG);
+
+        for (String roleRevoke : revokeRoleStatements) {
+            for (List<String> roleGrant : grantRoleStatements) {
+                testCacheRefreshOnRoleGrantAndRevoke(roleGrant, roleRevoke);
+            }
+        }
+    }
+
+    private void testCacheRefreshOnRoleGrantAndRevoke(List<String> grantRoleStatements, String revokeRoleStatement)
     {
         assertThatThrownBy(() -> getQueryRunner().execute(ALICE, "SELECT * FROM test"))
                 .hasMessageContaining("Access Denied");
@@ -187,21 +209,5 @@ public class TestCachingHiveMetastoreWithQueryRunner
 
         String expected = Joiner.on(",").join(nCopies(nodeCount + 1, row));
         assertQuery("SELECT * FROM test_part_append", "VALUES " + expected);
-    }
-
-    @DataProvider
-    public Object[][] testCacheRefreshOnRoleGrantAndRevokeParams()
-    {
-        String grantSelectStatement = "GRANT SELECT ON test TO ROLE test_role";
-        String grantRoleStatement = "GRANT test_role TO " + ALICE_NAME + " IN " + CATALOG;
-        List<List<String>> grantRoleStatements = ImmutableList.of(
-                ImmutableList.of(grantSelectStatement, grantRoleStatement),
-                ImmutableList.of(grantRoleStatement, grantSelectStatement));
-        List<String> revokeRoleStatements = ImmutableList.of(
-                "DROP ROLE test_role IN " + CATALOG,
-                "REVOKE SELECT ON test FROM ROLE test_role",
-                "REVOKE test_role FROM " + ALICE_NAME + " IN " + CATALOG);
-        return cartesianProduct(grantRoleStatements, revokeRoleStatements).stream()
-                .map(a -> a.toArray(Object[]::new)).toArray(Object[][]::new);
     }
 }

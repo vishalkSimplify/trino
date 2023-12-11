@@ -41,9 +41,10 @@ import io.trino.sql.planner.NodePartitioningManager;
 import io.trino.sql.planner.PartitioningHandle;
 import io.trino.testing.TestingTransactionHandle;
 import io.trino.util.FinalizerService;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.parallel.Execution;
 
 import java.util.List;
 import java.util.Optional;
@@ -73,8 +74,11 @@ import static io.trino.testing.TestingHandles.TEST_CATALOG_HANDLE;
 import static io.trino.testing.TestingSession.testSessionBuilder;
 import static java.util.stream.IntStream.range;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.TestInstance.Lifecycle.PER_METHOD;
+import static org.junit.jupiter.api.parallel.ExecutionMode.SAME_THREAD;
 
-@Test(singleThreaded = true)
+@TestInstance(PER_METHOD)
+@Execution(SAME_THREAD)
 public class TestLocalExchange
 {
     private static final List<Type> TYPES = ImmutableList.of(BIGINT);
@@ -88,8 +92,9 @@ public class TestLocalExchange
 
     private final ConcurrentMap<CatalogHandle, ConnectorNodePartitioningProvider> partitionManagers = new ConcurrentHashMap<>();
     private NodePartitioningManager nodePartitioningManager;
+    private final PartitioningHandle customScalingPartitioningHandle = getCustomScalingPartitioningHandle();
 
-    @BeforeMethod
+    @BeforeEach
     public void setUp()
     {
         NodeScheduler nodeScheduler = new NodeScheduler(new UniformNodeSelectorFactory(
@@ -332,8 +337,14 @@ public class TestLocalExchange
         });
     }
 
-    @Test(dataProvider = "scalingPartitionHandles")
-    public void testScalingWithTwoDifferentPartitions(PartitioningHandle partitioningHandle)
+    @Test
+    public void testScalingWithTwoDifferentPartitions()
+    {
+        testScalingWithTwoDifferentPartitions(customScalingPartitioningHandle);
+        testScalingWithTwoDifferentPartitions(SCALED_WRITER_HASH_DISTRIBUTION);
+    }
+
+    private void testScalingWithTwoDifferentPartitions(PartitioningHandle partitioningHandle)
     {
         LocalExchange localExchange = new LocalExchange(
                 nodePartitioningManager,
@@ -533,8 +544,14 @@ public class TestLocalExchange
         });
     }
 
-    @Test(dataProvider = "scalingPartitionHandles")
-    public void testScalingForSkewedWriters(PartitioningHandle partitioningHandle)
+    @Test
+    public void testScalingForSkewedWriters()
+    {
+        testScalingForSkewedWriters(customScalingPartitioningHandle);
+        testScalingForSkewedWriters(SCALED_WRITER_HASH_DISTRIBUTION);
+    }
+
+    private void testScalingForSkewedWriters(PartitioningHandle partitioningHandle)
     {
         LocalExchange localExchange = new LocalExchange(
                 nodePartitioningManager,
@@ -623,8 +640,14 @@ public class TestLocalExchange
         });
     }
 
-    @Test(dataProvider = "scalingPartitionHandles")
-    public void testNoScalingWhenDataWrittenIsLessThanMinFileSize(PartitioningHandle partitioningHandle)
+    @Test
+    public void testNoScalingWhenDataWrittenIsLessThanMinFileSize()
+    {
+        testNoScalingWhenDataWrittenIsLessThanMinFileSize(customScalingPartitioningHandle);
+        testNoScalingWhenDataWrittenIsLessThanMinFileSize(SCALED_WRITER_HASH_DISTRIBUTION);
+    }
+
+    private void testNoScalingWhenDataWrittenIsLessThanMinFileSize(PartitioningHandle partitioningHandle)
     {
         LocalExchange localExchange = new LocalExchange(
                 nodePartitioningManager,
@@ -687,8 +710,14 @@ public class TestLocalExchange
         });
     }
 
-    @Test(dataProvider = "scalingPartitionHandles")
-    public void testNoScalingWhenBufferUtilizationIsLessThanLimit(PartitioningHandle partitioningHandle)
+    @Test
+    public void testNoScalingWhenBufferUtilizationIsLessThanLimit()
+    {
+        testNoScalingWhenBufferUtilizationIsLessThanLimit(customScalingPartitioningHandle);
+        testNoScalingWhenBufferUtilizationIsLessThanLimit(SCALED_WRITER_HASH_DISTRIBUTION);
+    }
+
+    private void testNoScalingWhenBufferUtilizationIsLessThanLimit(PartitioningHandle partitioningHandle)
     {
         LocalExchange localExchange = new LocalExchange(
                 nodePartitioningManager,
@@ -751,8 +780,14 @@ public class TestLocalExchange
         });
     }
 
-    @Test(dataProvider = "scalingPartitionHandles")
-    public void testNoScalingWhenTotalMemoryUsedIsGreaterThanLimit(PartitioningHandle partitioningHandle)
+    @Test
+    public void testNoScalingWhenTotalMemoryUsedIsGreaterThanLimit()
+    {
+        testNoScalingWhenTotalMemoryUsedIsGreaterThanLimit(customScalingPartitioningHandle);
+        testNoScalingWhenTotalMemoryUsedIsGreaterThanLimit(SCALED_WRITER_HASH_DISTRIBUTION);
+    }
+
+    private void testNoScalingWhenTotalMemoryUsedIsGreaterThanLimit(PartitioningHandle partitioningHandle)
     {
         AtomicLong totalMemoryUsed = new AtomicLong();
         LocalExchange localExchange = new LocalExchange(
@@ -832,8 +867,14 @@ public class TestLocalExchange
         });
     }
 
-    @Test(dataProvider = "scalingPartitionHandles")
-    public void testDoNotUpdateScalingStateWhenMemoryIsAboveLimit(PartitioningHandle partitioningHandle)
+    @Test
+    public void testDoNotUpdateScalingStateWhenMemoryIsAboveLimit()
+    {
+        testDoNotUpdateScalingStateWhenMemoryIsAboveLimit(customScalingPartitioningHandle);
+        testDoNotUpdateScalingStateWhenMemoryIsAboveLimit(SCALED_WRITER_HASH_DISTRIBUTION);
+    }
+
+    private void testDoNotUpdateScalingStateWhenMemoryIsAboveLimit(PartitioningHandle partitioningHandle)
     {
         AtomicLong totalMemoryUsed = new AtomicLong();
         LocalExchange localExchange = new LocalExchange(
@@ -1314,12 +1355,6 @@ public class TestLocalExchange
             assertSinkFinished(sinkA);
             assertSinkFinished(sinkB);
         });
-    }
-
-    @DataProvider
-    public Object[][] scalingPartitionHandles()
-    {
-        return new Object[][] {{SCALED_WRITER_HASH_DISTRIBUTION}, {getCustomScalingPartitioningHandle()}};
     }
 
     private PartitioningHandle getCustomScalingPartitioningHandle()
