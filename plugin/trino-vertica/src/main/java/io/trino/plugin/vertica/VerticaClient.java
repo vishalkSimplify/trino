@@ -271,6 +271,7 @@ public class VerticaClient
         this.aggregateFunctionRewriter = new AggregateFunctionRewriter<>(this.connectorExpressionRewriter, ImmutableSet.<AggregateFunctionRule<JdbcExpression, ParameterizedExpression>>builder().add(new ImplementCountAll(bigintTypeHandle)).add(new ImplementMinMax(false)).add(new ImplementCount(bigintTypeHandle)).add(new ImplementCountDistinct(bigintTypeHandle, false)).add(new ImplementSum(VerticaClient::toTypeHandle)).add(new ImplementAvgFloatingPoint()).add(new ImplementStddevSamp()).add(new ImplementStddevPop()).add(new ImplementVarianceSamp()).add(new ImplementVariancePop()).add(new ImplementCovarianceSamp()).add(new ImplementCovariancePop()).add(new ImplementCorr()).add(new ImplementRegrIntercept()).add(new ImplementRegrSlope()).build());
     }
 
+    @Override
     public Optional<ColumnMapping> toColumnMapping(ConnectorSession session, Connection connection, JdbcTypeHandle typeHandle)
     {
         String jdbcTypeName = typeHandle.getJdbcTypeName().orElseThrow(() -> new TrinoException(JDBC_ERROR, "Type name is missing: " + typeHandle));
@@ -826,7 +827,7 @@ public class VerticaClient
 
     private static ObjectWriteFunction longTimestampWriteFunction()
     {
-        return ObjectWriteFunction.of(LongTimestamp.class, ((statement, index, timestamp) -> {
+        return ObjectWriteFunction.of(LongTimestamp.class, (statement, index, timestamp) -> {
             // VERTICA supports up to 6 digits of precision
             //noinspection ConstantConditions
             verify(VERTICAAQ_MAX_SUPPORTED_TIMESTAMP_PRECISION == 6);
@@ -836,7 +837,7 @@ public class VerticaClient
                 epochMicros++;
             }
             shortTimestampWriteFunction(statement, index, epochMicros);
-        }));
+        });
     }
 
     @Override
@@ -891,6 +892,7 @@ public class VerticaClient
         });
     }
 
+    @Override
     public boolean isTopNGuaranteed(ConnectorSession session)
     {
         return true;
@@ -1101,7 +1103,7 @@ public class VerticaClient
             String[]splits = time.split("\\.")[0].split(":");
 
             for (int x = 0; x < splits.length; x++) {
-                a += (Integer.parseInt(splits[x]) * multiplier[x]);
+                a += (Integer.parseInt(splits[x]) * ((long) multiplier[x]));
             }
             return Long.parseLong(sgn + String.valueOf(a + day));
         };
@@ -1166,7 +1168,7 @@ public class VerticaClient
             picosOfDay %= 60000;
             append(buf, ":", 2, (picosOfDay / 1000));
             picosOfDay %= 1000;
-            append(buf, ".", 3, (picosOfDay));
+            append(buf, ".", 3, picosOfDay);
             statement.setString(index, buf.toString());
         };
     }
