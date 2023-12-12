@@ -424,8 +424,7 @@ jobs:
             !:trino-sqlserver,
             !:trino-test-jdbc-compatibility-old-server,
             !:trino-tests,
-            !:trino-thrift',
-            !:trino-vertica
+            !:trino-thrift'
       - name: Upload test results
         uses: actions/upload-artifact@v3
         # Upload all test reports only on failure, because the artifacts are large
@@ -506,7 +505,6 @@ jobs:
                 - lib/trino-filesystem-s3
                 - lib/trino-hdfs
             - { modules: core/trino-main }
-            - { modules: plugin/trino-vertica }
             - { modules: lib/trino-filesystem-s3, profile: cloud-tests }
             - { modules: lib/trino-filesystem-azure, profile: cloud-tests }
             - { modules: lib/trino-hdfs, profile: cloud-tests }
