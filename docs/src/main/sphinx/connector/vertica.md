@@ -4,7 +4,7 @@ myst:
     default_domain_compaction_threshold: '`32`'
 ---
 
-# Vertica connector
+# Vertica Connector
 
 ```{raw} html
 <img src="../_static/img/druid.png" class="connector-logo">
@@ -13,13 +13,13 @@ myst:
 The Vertica connector allows querying and creating tables 
 in an external [Vertica](https://www.vertica.com/) database.
 This can be used to join data between different systems 
-like Vertica and PostgresSQL, or between different Vertica instances.
+like Vertica and PostgreSQL, or between different Vertica instances.
 
 ## Requirements
 
 To connect to Vertica, you need:
 
-- Vertica 23.4.x or higher.
+- Vertica 23.4.x or higher
 - Network access from the Trino coordinator and workers to Vertica.
   Port 5433 is the default port.
 
@@ -51,7 +51,7 @@ determine the user credentials for the connection, often a service user. You can
 use {doc}`secrets </security/secrets>` to avoid actual values in the catalog
 properties files.
 
-### Access to system tables
+### Access to System Tables
 
 
 
@@ -73,7 +73,7 @@ SELECT * FROM system_tables ORDER BY table_schema, table_name;
 > when querying these tables, as they contain critical information about the Vertica system.
 
 
-### Connection security
+### Connection Security
 
 If you have TLS configured with a globally-trusted certificate installed on your
 data source, you can enable TLS between your cluster and the data
@@ -88,15 +88,14 @@ property:
 connection-url=jdbc:vertica://vertica.Example.Com:5433/database?ssl=true 
 ```
 
-For more information on TLS configuration options check [Vertica JDBC driver documentation](https://docs.vertica.com/23.4.x/en/connecting-to/client-libraries/accessing/java/creating-and-configuring-connection/),
-and to enable tls in vertica check [Vertica TLS documentation](https://docs.vertica.com/23.4.x/en/security-and-authentication/tls-protocol/tls-overview/tls-configs/).
+For more information on TLS configuration options check [Vertica JDBC driver documentation](https://docs.vertica.com/23.4.x/en/connecting-to/client-libraries/accessing/java/creating-and-configuring-connection/) .
 
 
 
-### Multiple Vertica databases or servers
+### Multiple Vertica Databases or Servers
 
 The Vertica connector can only access a single database within a Vertica server.
-If you have multiple Vertica databases,or want to connect to multiple Vertica servers, 
+If you have multiple Vertica databases or want to connect to multiple Vertica servers, 
 you must configure multiple instances of the Vertica connector.
 
 To add another catalog, simply add another properties file to `etc/catalog`
@@ -106,14 +105,14 @@ catalog named `sales` using the configured connector.
 
 
 
-## Type mapping
+## Type Mapping
 
 Trino and Vertica each support types that the other does not, this connector 
 [modifies some types](https://trino.io/docs/current/language/types.html#type-mapping-overview) when reading or writing data. Data types may not map 
 the same way in both directions between Trino and the Vertica data source. 
 Refer to the following sections for type mapping in each direction.
 
-### Vertica type to Trino type mapping
+### Vertica Type to Trino Type Mapping
 
 The connector maps Vertica types to the corresponding Trino types following
 this table:
@@ -227,10 +226,9 @@ this table:
 No other types are supported.
 
 
-### Trino type to Vertica type mapping
+### Trino type to Vertica Type Mapping
 
-The connector maps Trino types to the corresponding Vertica types following
-this table:
+The connector maps Trino types to the corresponding Vertica types following this table:
 
 :::{list-table} Trino type to Vertica type mapping
 :widths: 30, 30, 40
@@ -303,7 +301,7 @@ No other types are supported.
 
 (vertica-array-type-handling)=
 
-### Array type handling
+### Array Type Handling
 
 The Vertica array implementation differs from Trino in that it does not support fixed dimensions, whereas Trino supports only arrays with fixed dimensions. You can configure how the `Vertica` connector handles arrays with the `vertica.array-mapping` configuration property in your catalog file or the `array_mapping` session property. 
 
@@ -354,7 +352,7 @@ data using Trino in a similar manner as querying Vertica .
 
 (Vertica-sql-support)=
 
-## SQL support
+## SQL Support
 
 The connector provides read access and write access to data and metadata in
 Vertica.  In addition to the {ref}`globally available
@@ -436,7 +434,7 @@ following sections.
 
 (vertica-table-statistics)=
 
-### Table statistics for Vertica
+### Table Statistics for Vertica
 
 The Vertica connector can use {doc}`table and column statistics
 </optimizer/statistics>` for {doc}`cost based optimizations
@@ -484,7 +482,6 @@ The connector supports pushdown for a number of operations:
 - {func}`max`
 - {func}`min`
 - {func}`sum`
-  
 
 ```{include} pushdown-correctness-behavior.fragment
 ```
@@ -492,7 +489,7 @@ The connector supports pushdown for a number of operations:
 ```{include} join-pushdown-enabled-true.fragment
 ```
 
-### Predicate pushdown support
+### Predicate Pushdown Support
 
 Predicates are pushed down for most types, including `UUID` and temporal
 types, such as `DATE`.
